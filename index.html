@@ -1,313 +1,290 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Трекер калорий</title>
-<style>
-  /* Основные шрифты и цвета */
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-
-  :root {
-    --color-bg-light: #f5f5f7;
-    --color-bg-dark: #1c1c1e;
-    --color-text-light: #1d1d1f;
-    --color-text-dark: #f0f0f3;
-    --color-accent: #0071e3;
-    --color-accent-hover: #005bb5;
-    --color-card-light: #ffffff;
-    --color-card-dark: #2c2c2e;
-    --border-radius: 16px;
-    --transition: 0.3s ease;
-  }
-
-  body {
-    margin: 0;
-    background-color: var(--color-bg-light);
-    color: var(--color-text-light);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 30px 15px;
-    min-height: 100vh;
-    transition: background-color var(--transition), color var(--transition);
-  }
-
-  body.dark {
-    background-color: var(--color-bg-dark);
-    color: var(--color-text-dark);
-  }
-
-  h1 {
-    font-weight: 600;
-    font-size: 2.4rem;
-    margin-bottom: 25px;
-    user-select: none;
-  }
-
-  .container {
-    max-width: 480px;
-    width: 100%;
-    background-color: var(--color-card-light);
-    border-radius: var(--border-radius);
-    padding: 25px 25px 40px;
-    box-shadow: 0 10px 30px rgb(0 0 0 / 0.1);
-    transition: background-color var(--transition);
-  }
-
-  body.dark .container {
-    background-color: var(--color-card-dark);
-    box-shadow: 0 10px 30px rgb(255 255 255 / 0.1);
-  }
-
-  form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-
-  input[type="text"],
-  input[type="number"] {
-    flex: 1 1 140px;
-    padding: 12px 16px;
-    font-size: 1rem;
-    border: 1.8px solid #ccc;
-    border-radius: var(--border-radius);
-    transition: border-color var(--transition), background-color var(--transition), color var(--transition);
-    outline-offset: 2px;
-  }
-
-  body.dark input[type="text"],
-  body.dark input[type="number"] {
-    background-color: #3a3a3c;
-    border-color: #555;
-    color: var(--color-text-dark);
-  }
-
-  input[type="text"]::placeholder,
-  input[type="number"]::placeholder {
-    color: #999;
-  }
-
-  button {
-    padding: 12px 28px;
-    background-color: var(--color-accent);
-    color: white;
-    font-weight: 600;
-    font-size: 1rem;
-    border: none;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    user-select: none;
-    transition: background-color var(--transition), box-shadow var(--transition);
-    flex: 1 1 120px;
-    min-width: 120px;
-  }
-
-  button:hover,
-  button:focus {
-    background-color: var(--color-accent-hover);
-    box-shadow: 0 4px 15px rgba(0, 113, 227, 0.6);
-  }
-
-  #toggleThemeBtn {
-    margin-bottom: 20px;
-    background-color: transparent;
-    color: var(--color-accent);
-    font-weight: 600;
-    border: 2px solid var(--color-accent);
-    flex: unset;
-    min-width: unset;
-    padding: 8px 20px;
-  }
-
-  #toggleThemeBtn:hover {
-    background-color: var(--color-accent);
-    color: white;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0 10px;
-  }
-
-  thead th {
-    text-align: left;
-    padding-left: 15px;
-    font-weight: 600;
-    color: var(--color-accent);
-    user-select: none;
-    font-size: 0.9rem;
-  }
-
-  tbody tr {
-    background-color: var(--color-card-light);
-    border-radius: var(--border-radius);
-    box-shadow: 0 3px 8px rgb(0 0 0 / 0.05);
-    transition: background-color var(--transition);
-  }
-
-  body.dark tbody tr {
-    background-color: var(--color-card-dark);
-    box-shadow: 0 3px 8px rgb(255 255 255 / 0.1);
-  }
-
-  tbody tr td {
-    padding: 12px 15px;
-    font-size: 1rem;
-    vertical-align: middle;
-    color: var(--color-text-light);
-  }
-
-  body.dark tbody tr td {
-    color: var(--color-text-dark);
-  }
-
-  tbody tr td:last-child {
-    width: 48px;
-    text-align: center;
-  }
-
-  .deleteBtn {
-    background: none;
-    border: none;
-    color: #d32f2f;
-    font-weight: 700;
-    font-size: 1.2rem;
-    cursor: pointer;
-    transition: color 0.3s ease;
-  }
-
-  .deleteBtn:hover {
-    color: #9a0000;
-  }
-
-  #totalStats {
-    margin-top: 30px;
-    font-weight: 600;
-    font-size: 1.2rem;
-    user-select: none;
-  }
-
-  /* Анимация плавного появления записи */
-  @keyframes fadeInSlide {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  tbody tr {
-    animation: fadeInSlide 0.35s ease forwards;
-  }
-
-  /* Адаптив для телефона */
-  @media (max-width: 480px) {
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Трекер калорий с историей</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* Общие стили */
     body {
-      padding: 20px 12px;
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+        Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background: #f9f9f9;
+      color: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 15px 10px 40px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      user-select: none;
     }
-    .container {
-      padding: 20px 20px 35px;
-      max-width: 100%;
+
+    h1 {
+      font-weight: 600;
+      font-size: 1.8rem;
+      margin: 0 0 10px;
+      text-align: center;
+      color: #222;
     }
-    input[type="text"],
-    input[type="number"] {
-      flex-basis: 100%;
+
+    #app {
+      width: 100%;
+      max-width: 430px; /* Под iPhone 13 mini и аналогичные */
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgb(0 0 0 / 0.1);
+      padding: 20px 20px 30px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
     }
-    button {
-      flex-basis: 100%;
-      min-width: auto;
-    }
-    thead {
-      display: none;
-    }
-    tbody tr {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      padding: 12px 15px;
-      margin-bottom: 12px;
-      border-radius: var(--border-radius);
-      box-shadow: 0 3px 8px rgb(0 0 0 / 0.05);
-      background-color: var(--color-card-light);
-      color: var(--color-text-light);
-    }
-    body.dark tbody tr {
-      background-color: var(--color-card-dark);
-      color: var(--color-text-dark);
-      box-shadow: 0 3px 8px rgb(255 255 255 / 0.1);
-    }
-    tbody tr td {
-      padding: 0;
-      font-size: 1rem;
-      line-height: 1.3;
-    }
-    tbody tr td:nth-child(1) {
-      grid-column: 1 / 2;
+
+    label {
       font-weight: 600;
       margin-bottom: 4px;
+      display: block;
+      color: #333;
     }
-    tbody tr td:nth-child(2),
-    tbody tr td:nth-child(3) {
-      text-align: right;
-      grid-column: 2 / 3;
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"] {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 1rem;
+      border: 1.5px solid #ddd;
+      border-radius: 10px;
+      outline-offset: 2px;
+      outline-color: transparent;
+      transition: outline-color 0.3s ease, border-color 0.3s ease;
+      box-sizing: border-box;
     }
-    tbody tr td:last-child {
-      grid-column: 2 / 3;
-      text-align: right;
-      padding-right: 0;
-      margin-left: 8px;
-      align-self: center;
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input[type="date"]:focus {
+      outline-color: #007aff;
+      border-color: #007aff;
     }
-  }
-</style>
+
+    form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px 12px;
+      align-items: flex-end;
+    }
+
+    form > div {
+      display: flex;
+      flex-direction: column;
+    }
+
+    form > div.full-width {
+      grid-column: 1 / -1;
+    }
+
+    button {
+      grid-column: 1 / -1;
+      padding: 12px 0;
+      background: #007aff;
+      color: #fff;
+      font-weight: 600;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      user-select: none;
+      box-shadow: 0 5px 12px rgb(0 122 255 / 0.45);
+    }
+    button:hover {
+      background: #005ecb;
+      box-shadow: 0 7px 18px rgb(0 94 203 / 0.6);
+    }
+    button:active {
+      background: #004299;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 10px;
+      font-size: 0.95rem;
+      color: #222;
+    }
+
+    thead tr {
+      background: transparent;
+    }
+
+    thead th {
+      text-align: left;
+      font-weight: 600;
+      padding-bottom: 8px;
+      color: #555;
+      font-size: 0.85rem;
+      user-select: none;
+    }
+
+    tbody tr {
+      background: #f5f5f7;
+      border-radius: 14px;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+      transition: background-color 0.2s ease;
+    }
+
+    tbody tr:hover {
+      background: #e4ebfa;
+    }
+
+    tbody td {
+      padding: 10px 12px;
+      vertical-align: middle;
+    }
+
+    tbody td:first-child {
+      font-weight: 600;
+      max-width: 140px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    tbody td:last-child {
+      text-align: center;
+      cursor: pointer;
+      color: #d33;
+      font-weight: 700;
+      user-select: none;
+      font-size: 1.3rem;
+      line-height: 1;
+      padding-right: 16px;
+      transition: color 0.3s ease;
+    }
+    tbody td:last-child:hover {
+      color: #a00;
+    }
+
+    #totalStats {
+      font-weight: 600;
+      font-size: 1.05rem;
+      padding-top: 8px;
+      color: #222;
+      border-top: 1px solid #ddd;
+      user-select: none;
+    }
+
+    #historyDate {
+      width: 100%;
+      max-width: 200px;
+      margin: 0 auto 12px;
+      padding: 10px 12px;
+      font-size: 1rem;
+      border: 1.5px solid #ddd;
+      border-radius: 12px;
+      outline-offset: 2px;
+      outline-color: transparent;
+      transition: outline-color 0.3s ease, border-color 0.3s ease;
+      display: block;
+    }
+    #historyDate:focus {
+      outline-color: #007aff;
+      border-color: #007aff;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 430px) {
+      body {
+        padding: 12px 8px 30px;
+      }
+      #app {
+        max-width: 100%;
+        padding: 15px 15px 25px;
+      }
+      form {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      button {
+        grid-column: 1;
+        font-size: 1rem;
+      }
+      table {
+        font-size: 0.9rem;
+      }
+      tbody td:first-child {
+        max-width: 120px;
+      }
+      #historyDate {
+        max-width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<h1>Трекер калорий</h1>
+  <h1>Трекер калорий с историей</h1>
+  <div id="app" role="main" aria-label="Трекер калорий с выбором даты и историей">
+    <form id="foodForm" aria-describedby="formDesc">
+      <div class="full-width">
+        <label for="dateInput">Дата</label>
+        <input type="date" id="dateInput" value="" aria-required="true" />
+      </div>
+      <div>
+        <label for="foodInput">Еда</label>
+        <input id="foodInput" type="text" placeholder="Название продукта" required aria-required="true" />
+      </div>
+      <div>
+        <label for="caloriesInput">Калории (Ккал)</label>
+        <input id="caloriesInput" type="number" min="0" placeholder="Например, 250" required aria-required="true" />
+      </div>
+      <div>
+        <label for="proteinInput">Белки (г) <small>(не обязательно)</small></label>
+        <input id="proteinInput" type="number" min="0" placeholder="0" />
+      </div>
+      <div>
+        <label for="fatInput">Жиры (г) <small>(не обязательно)</small></label>
+        <input id="fatInput" type="number" min="0" placeholder="0" />
+      </div>
+      <div>
+        <label for="carbInput">Углеводы (г) <small>(не обязательно)</small></label>
+        <input id="carbInput" type="number" min="0" placeholder="0" />
+      </div>
+      <button type="submit" aria-label="Добавить продукт">Добавить</button>
+    </form>
 
-<div class="container">
-  <button id="toggleThemeBtn" aria-label="Переключить тему">Тёмная тема</button>
+    <label for="historyDate">Выбери дату для просмотра истории</label>
+    <input type="date" id="historyDate" aria-live="polite" />
 
-  <form id="foodForm">
-    <input type="text" id="foodInput" placeholder="Что съел?" autocomplete="off" required />
-    <input type="number" id="caloriesInput" placeholder="Ккал" min="0" step="1" required />
-    <input type="number" id="proteinInput" placeholder="Белки (г)" min="0" step="0.1" required />
-    <input type="number" id="fatInput" placeholder="Жиры (г)" min="0" step="0.1" required />
-    <input type="number" id="carbInput" placeholder="Углеводы (г)" min="0" step="0.1" required />
-    <button type="submit">Добавить</button>
-  </form>
+    <table role="table" aria-label="Список продуктов">
+      <thead>
+        <tr>
+          <th>Еда</th>
+          <th>Ккал</th>
+          <th>Белки</th>
+          <th>Жиры</th>
+          <th>Углеводы</th>
+          <th>Удалить</th>
+        </tr>
+      </thead>
+      <tbody id="foodList">
+        <!-- Продукты сюда -->
+      </tbody>
+    </table>
 
-  <table aria-label="Список продуктов и калорий">
-    <thead>
-      <tr>
-        <th>Продукт</th>
-        <th>Ккал</th>
-        <th>Б</th>
-        <th>Ж</th>
-        <th>У</th>
-        <th>Удалить</th>
-      </tr>
-    </thead>
-    <tbody id="foodList">
-      <!-- Здесь будут строки с едой -->
-    </tbody>
-  </table>
-
-  <div id="totalStats" aria-live="polite">
-    Всего: 0 Ккал | 0 г Белков | 0 г Жиров | 0 г Углеводов
+    <div id="totalStats" aria-live="polite" aria-atomic="true">
+      Всего: 0 Ккал | 0 г Белков | 0 г Жиров | 0 г Углеводов
+    </div>
   </div>
-</div>
 
 <script>
 (() => {
   const foodForm = document.getElementById('foodForm');
+  const dateInput = document.getElementById('dateInput');
   const foodInput = document.getElementById('foodInput');
   const caloriesInput = document.getElementById('caloriesInput');
   const proteinInput = document.getElementById('proteinInput');
@@ -315,112 +292,109 @@
   const carbInput = document.getElementById('carbInput');
   const foodList = document.getElementById('foodList');
   const totalStats = document.getElementById('totalStats');
-  const toggleThemeBtn = document.getElementById('toggleThemeBtn');
+  const historyDate = document.getElementById('historyDate');
 
-  // Состояние - массив объектов {id, food, calories, protein, fat, carbs}
-  let foods = [];
+  // Установим дату по умолчанию - сегодня
+  const today = new Date().toISOString().slice(0, 10);
+  dateInput.value = today;
+  historyDate.value = today;
 
-  // Загрузка из localStorage
-  function loadFoods() {
-    const saved = localStorage.getItem('calorieTrackerFoods');
-    if (saved) {
-      foods = JSON.parse(saved);
-    }
+  // Загрузить данные из localStorage для даты
+  function loadData(date) {
+    const data = localStorage.getItem('calorieTracker-' + date);
+    return data ? JSON.parse(data) : [];
   }
 
-  // Сохранение в localStorage
-  function saveFoods() {
-    localStorage.setItem('calorieTrackerFoods', JSON.stringify(foods));
+  // Сохранить данные в localStorage для даты
+  function saveData(date, items) {
+    localStorage.setItem('calorieTracker-' + date, JSON.stringify(items));
   }
 
-  // Обновить табличку и итоги
-  function renderFoods() {
+  // Обновить таблицу и сумму
+  function updateTable(date) {
+    const items = loadData(date);
     foodList.innerHTML = '';
-    let totalCalories = 0, totalProtein = 0, totalFat = 0, totalCarbs = 0;
-    for (const item of foods) {
-      totalCalories += item.calories;
-      totalProtein += item.protein;
-      totalFat += item.fat;
-      totalCarbs += item.carbs;
+    let sumCalories = 0, sumProtein = 0, sumFat = 0, sumCarb = 0;
 
+    items.forEach((item, index) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${item.food}</td>
+        <td title="${item.food}">${item.food}</td>
         <td>${item.calories}</td>
-        <td>${item.protein.toFixed(1)}</td>
-        <td>${item.fat.toFixed(1)}</td>
-        <td>${item.carbs.toFixed(1)}</td>
-        <td><button class="deleteBtn" aria-label="Удалить ${item.food}">×</button></td>
+        <td>${item.protein || 0}</td>
+        <td>${item.fat || 0}</td>
+        <td>${item.carb || 0}</td>
+        <td role="button" aria-label="Удалить ${item.food}" tabindex="0" style="color:#d33; cursor:pointer;">&times;</td>
       `;
-      // Удаление по кнопке
-      tr.querySelector('button.deleteBtn').addEventListener('click', () => {
-        foods = foods.filter(f => f.id !== item.id);
-        saveFoods();
-        renderFoods();
+      // Обработка удаления
+      tr.querySelector('td:last-child').addEventListener('click', () => {
+        items.splice(index, 1);
+        saveData(date, items);
+        updateTable(date);
       });
-      foodList.appendChild(tr);
-    }
+      // Удаление с клавиатуры (Enter/Space)
+      tr.querySelector('td:last-child').addEventListener('keydown', (e) => {
+        if(e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          items.splice(index, 1);
+          saveData(date, items);
+          updateTable(date);
+        }
+      });
 
-    totalStats.textContent = `Всего: ${totalCalories} Ккал | ${totalProtein.toFixed(1)} г Белков | ${totalFat.toFixed(1)} г Жиров | ${totalCarbs.toFixed(1)} г Углеводов`;
+      foodList.appendChild(tr);
+
+      sumCalories += Number(item.calories);
+      sumProtein += Number(item.protein || 0);
+      sumFat += Number(item.fat || 0);
+      sumCarb += Number(item.carb || 0);
+    });
+
+    totalStats.textContent = `Всего: ${sumCalories} Ккал | ${sumProtein} г Белков | ${sumFat} г Жиров | ${sumCarb} г Углеводов`;
   }
 
-  // Добавить новую запись
-  foodForm.addEventListener('submit', e => {
+  // При добавлении еды
+  foodForm.addEventListener('submit', (e) => {
     e.preventDefault();
-
+    const date = dateInput.value;
     const food = foodInput.value.trim();
-    const calories = Number(caloriesInput.value);
-    const protein = Number(proteinInput.value);
-    const fat = Number(fatInput.value);
-    const carbs = Number(carbInput.value);
+    const calories = caloriesInput.value.trim();
+    // Белки, жиры, углеводы необязательны, если пусто — 0
+    const protein = proteinInput.value.trim() || '0';
+    const fat = fatInput.value.trim() || '0';
+    const carb = carbInput.value.trim() || '0';
 
-    if (!food || calories < 0 || protein < 0 || fat < 0 || carbs < 0) {
-      alert('Пожалуйста, заполните все поля корректно');
+    if(!date || !food || !calories) {
+      alert('Пожалуйста, заполните дату, еду и калории.');
       return;
     }
 
-    const newFood = {
-      id: Date.now(),
-      food,
-      calories,
-      protein,
-      fat,
-      carbs
-    };
+    const items = loadData(date);
+    items.push({ food, calories: Number(calories), protein: Number(protein), fat: Number(fat), carb: Number(carb) });
+    saveData(date, items);
+    updateTable(date);
 
-    foods.push(newFood);
-    saveFoods();
-    renderFoods();
-
-    foodForm.reset();
-    foodInput.focus();
+    foodInput.value = '';
+    caloriesInput.value = '';
+    proteinInput.value = '';
+    fatInput.value = '';
+    carbInput.value = '';
   });
 
-  // Тёмная тема из localStorage или по умолчанию светлая
-  function loadTheme() {
-    const theme = localStorage.getItem('calorieTrackerTheme');
-    if (theme === 'dark') {
-      document.body.classList.add('dark');
-      toggleThemeBtn.textContent = 'Светлая тема';
-    }
-  }
-
-  // Переключение темы
-  toggleThemeBtn.addEventListener('click', () => {
-    document.body.classList.toggle('dark');
-    if (document.body.classList.contains('dark')) {
-      toggleThemeBtn.textContent = 'Светлая тема';
-      localStorage.setItem('calorieTrackerTheme', 'dark');
-    } else {
-      toggleThemeBtn.textContent = 'Тёмная тема';
-      localStorage.setItem('calorieTrackerTheme', 'light');
-    }
+  // При смене даты просмотра истории
+  historyDate.addEventListener('change', () => {
+    updateTable(historyDate.value);
+    dateInput.value = historyDate.value;
   });
 
-  // Инициализация
-  loadTheme();
-  loadFoods();
-  renderFoods();
+  // При смене даты добавления — синхронизируем с историей
+  dateInput.addEventListener('change', () => {
+    historyDate.value = dateInput.value;
+    updateTable(dateInput.value);
+  });
+
+  // Загрузка при старте
+  updateTable(today);
 })();
 </script>
 
