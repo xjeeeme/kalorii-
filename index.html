@@ -1,402 +1,402 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>Трекер калорий с историей</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-  <style>
-    /* Общие стили */
-    body {
-      margin: 0;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-        Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      background: #f9f9f9;
-      color: #111;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 15px 10px 40px;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      user-select: none;
+import React, { useState, useEffect } from "react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
+
+const STORAGE_KEY = "calorieTrackerData";
+
+function formatDate(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+export default function CalorieTracker() {
+  const [date, setDate] = useState(formatDate(new Date()));
+  const [entries, setEntries] = useState([]);
+  const [food, setFood] = useState("");
+  const [calories, setCalories] = useState("");
+  const [protein, setProtein] = useState("");
+  const [fat, setFat] = useState("");
+  const [carbs, setCarbs] = useState("");
+  const [weight, setWeight] = useState("");
+  const [editId, setEditId] = useState(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) setEntries(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  }, [entries]);
+
+  const filteredEntries = entries.filter(e => e.date === date);
+
+  const handleAddOrUpdate = () => {
+    if (!food.trim()) return;
+
+    const entry = {
+      id: editId || Date.now(),
+      date,
+      food: food.trim(),
+      calories: calories ? +calories : null,
+      protein: protein ? +protein : null,
+      fat: fat ? +fat : null,
+      carbs: carbs ? +carbs : null,
+      weight: weight ? +weight : null,
+    };
+
+    if (editId) {
+      setEntries(entries.map(e => e.id === editId ? entry : e));
+    } else {
+      setEntries([...entries, entry]);
     }
+    resetForm();
+  };
 
-    h1 {
-      font-weight: 600;
-      font-size: 1.8rem;
-      margin: 0 0 10px;
-      text-align: center;
-      color: #222;
-    }
+  const resetForm = () => {
+    setFood("");
+    setCalories("");
+    setProtein("");
+    setFat("");
+    setCarbs("");
+    setWeight("");
+    setEditId(null);
+  };
 
-    #app {
-      width: 100%;
-      max-width: 430px; /* Под iPhone 13 mini и аналогичные */
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 8px 25px rgb(0 0 0 / 0.1);
-      padding: 20px 20px 30px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
+  const handleEdit = (id) => {
+    const e = entries.find(entry => entry.id === id);
+    if (!e) return;
+    setDate(e.date);
+    setFood(e.food);
+    setCalories(e.calories !== null ? e.calories.toString() : "");
+    setProtein(e.protein !== null ? e.protein.toString() : "");
+    setFat(e.fat !== null ? e.fat.toString() : "");
+    setCarbs(e.carbs !== null ? e.carbs.toString() : "");
+    setWeight(e.weight !== null ? e.weight.toString() : "");
+    setEditId(id);
+  };
 
-    label {
-      font-weight: 600;
-      margin-bottom: 4px;
-      display: block;
-      color: #333;
-    }
+  const handleDelete = (id) => {
+    setEntries(entries.filter(e => e.id !== id));
+    if (editId === id) resetForm();
+  };
 
-    input[type="text"],
-    input[type="number"],
-    input[type="date"] {
-      width: 100%;
-      padding: 10px 12px;
-      font-size: 1rem;
-      border: 1.5px solid #ddd;
-      border-radius: 10px;
-      outline-offset: 2px;
-      outline-color: transparent;
-      transition: outline-color 0.3s ease, border-color 0.3s ease;
-      box-sizing: border-box;
-    }
-    input[type="text"]:focus,
-    input[type="number"]:focus,
-    input[type="date"]:focus {
-      outline-color: #007aff;
-      border-color: #007aff;
-    }
+  // Суммы по текущей дате
+  const summary = filteredEntries.reduce(
+    (acc, e) => {
+      acc.calories += e.calories || 0;
+      acc.protein += e.protein || 0;
+      acc.fat += e.fat || 0;
+      acc.carbs += e.carbs || 0;
+      return acc;
+    },
+    { calories: 0, protein: 0, fat: 0, carbs: 0 }
+  );
 
-    form {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px 12px;
-      align-items: flex-end;
-    }
+  // Для графика веса берем последние записи с весом, сгруппированные по дате (последний вес за день)
+  const weightByDateMap = new Map();
+  entries.forEach(e => {
+    if (e.weight !== null) weightByDateMap.set(e.date, e.weight);
+  });
+  const weightData = Array.from(weightByDateMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, weight]) => ({ date, weight }));
 
-    form > div {
-      display: flex;
-      flex-direction: column;
-    }
-
-    form > div.full-width {
-      grid-column: 1 / -1;
-    }
-
-    button {
-      grid-column: 1 / -1;
-      padding: 12px 0;
-      background: #007aff;
-      color: #fff;
-      font-weight: 600;
-      font-size: 1.1rem;
-      border: none;
-      border-radius: 15px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      user-select: none;
-      box-shadow: 0 5px 12px rgb(0 122 255 / 0.45);
-    }
-    button:hover {
-      background: #005ecb;
-      box-shadow: 0 7px 18px rgb(0 94 203 / 0.6);
-    }
-    button:active {
-      background: #004299;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0 10px;
-      font-size: 0.95rem;
-      color: #222;
-    }
-
-    thead tr {
-      background: transparent;
-    }
-
-    thead th {
-      text-align: left;
-      font-weight: 600;
-      padding-bottom: 8px;
-      color: #555;
-      font-size: 0.85rem;
-      user-select: none;
-    }
-
-    tbody tr {
-      background: #f5f5f7;
-      border-radius: 14px;
-      box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
-      transition: background-color 0.2s ease;
-    }
-
-    tbody tr:hover {
-      background: #e4ebfa;
-    }
-
-    tbody td {
-      padding: 10px 12px;
-      vertical-align: middle;
-    }
-
-    tbody td:first-child {
-      font-weight: 600;
-      max-width: 140px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-
-    tbody td:last-child {
-      text-align: center;
-      cursor: pointer;
-      color: #d33;
-      font-weight: 700;
-      user-select: none;
-      font-size: 1.3rem;
-      line-height: 1;
-      padding-right: 16px;
-      transition: color 0.3s ease;
-    }
-    tbody td:last-child:hover {
-      color: #a00;
-    }
-
-    #totalStats {
-      font-weight: 600;
-      font-size: 1.05rem;
-      padding-top: 8px;
-      color: #222;
-      border-top: 1px solid #ddd;
-      user-select: none;
-    }
-
-    #historyDate {
-      width: 100%;
-      max-width: 200px;
-      margin: 0 auto 12px;
-      padding: 10px 12px;
-      font-size: 1rem;
-      border: 1.5px solid #ddd;
-      border-radius: 12px;
-      outline-offset: 2px;
-      outline-color: transparent;
-      transition: outline-color 0.3s ease, border-color 0.3s ease;
-      display: block;
-    }
-    #historyDate:focus {
-      outline-color: #007aff;
-      border-color: #007aff;
-    }
-
-    /* Адаптивность */
-    @media (max-width: 430px) {
-      body {
-        padding: 12px 8px 30px;
-      }
-      #app {
-        max-width: 100%;
-        padding: 15px 15px 25px;
-      }
-      form {
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-      button {
-        grid-column: 1;
-        font-size: 1rem;
-      }
-      table {
-        font-size: 0.9rem;
-      }
-      tbody td:first-child {
-        max-width: 120px;
-      }
-      #historyDate {
-        max-width: 100%;
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <h1>Трекер калорий с историей</h1>
-  <div id="app" role="main" aria-label="Трекер калорий с выбором даты и историей">
-    <form id="foodForm" aria-describedby="formDesc">
-      <div class="full-width">
-        <label for="dateInput">Дата</label>
-        <input type="date" id="dateInput" value="" aria-required="true" />
-      </div>
-      <div>
-        <label for="foodInput">Еда</label>
-        <input id="foodInput" type="text" placeholder="Название продукта" required aria-required="true" />
-      </div>
-      <div>
-        <label for="caloriesInput">Калории (Ккал)</label>
-        <input id="caloriesInput" type="number" min="0" placeholder="Например, 250" required aria-required="true" />
-      </div>
-      <div>
-        <label for="proteinInput">Белки (г) <small>(не обязательно)</small></label>
-        <input id="proteinInput" type="number" min="0" placeholder="0" />
-      </div>
-      <div>
-        <label for="fatInput">Жиры (г) <small>(не обязательно)</small></label>
-        <input id="fatInput" type="number" min="0" placeholder="0" />
-      </div>
-      <div>
-        <label for="carbInput">Углеводы (г) <small>(не обязательно)</small></label>
-        <input id="carbInput" type="number" min="0" placeholder="0" />
-      </div>
-      <button type="submit" aria-label="Добавить продукт">Добавить</button>
-    </form>
-
-    <label for="historyDate">Выбери дату для просмотра истории</label>
-    <input type="date" id="historyDate" aria-live="polite" />
-
-    <table role="table" aria-label="Список продуктов">
-      <thead>
-        <tr>
-          <th>Еда</th>
-          <th>Ккал</th>
-          <th>Белки</th>
-          <th>Жиры</th>
-          <th>Углеводы</th>
-          <th>Удалить</th>
-        </tr>
-      </thead>
-      <tbody id="foodList">
-        <!-- Продукты сюда -->
-      </tbody>
-    </table>
-
-    <div id="totalStats" aria-live="polite" aria-atomic="true">
-      Всего: 0 Ккал | 0 г Белков | 0 г Жиров | 0 г Углеводов
-    </div>
-  </div>
-
-<script>
-(() => {
-  const foodForm = document.getElementById('foodForm');
-  const dateInput = document.getElementById('dateInput');
-  const foodInput = document.getElementById('foodInput');
-  const caloriesInput = document.getElementById('caloriesInput');
-  const proteinInput = document.getElementById('proteinInput');
-  const fatInput = document.getElementById('fatInput');
-  const carbInput = document.getElementById('carbInput');
-  const foodList = document.getElementById('foodList');
-  const totalStats = document.getElementById('totalStats');
-  const historyDate = document.getElementById('historyDate');
-
-  // Установим дату по умолчанию - сегодня
-  const today = new Date().toISOString().slice(0, 10);
-  dateInput.value = today;
-  historyDate.value = today;
-
-  // Загрузить данные из localStorage для даты
-  function loadData(date) {
-    const data = localStorage.getItem('calorieTracker-' + date);
-    return data ? JSON.parse(data) : [];
-  }
-
-  // Сохранить данные в localStorage для даты
-  function saveData(date, items) {
-    localStorage.setItem('calorieTracker-' + date, JSON.stringify(items));
-  }
-
-  // Обновить таблицу и сумму
-  function updateTable(date) {
-    const items = loadData(date);
-    foodList.innerHTML = '';
-    let sumCalories = 0, sumProtein = 0, sumFat = 0, sumCarb = 0;
-
-    items.forEach((item, index) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td title="${item.food}">${item.food}</td>
-        <td>${item.calories}</td>
-        <td>${item.protein || 0}</td>
-        <td>${item.fat || 0}</td>
-        <td>${item.carb || 0}</td>
-        <td role="button" aria-label="Удалить ${item.food}" tabindex="0" style="color:#d33; cursor:pointer;">&times;</td>
-      `;
-      // Обработка удаления
-      tr.querySelector('td:last-child').addEventListener('click', () => {
-        items.splice(index, 1);
-        saveData(date, items);
-        updateTable(date);
-      });
-      // Удаление с клавиатуры (Enter/Space)
-      tr.querySelector('td:last-child').addEventListener('keydown', (e) => {
-        if(e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          items.splice(index, 1);
-          saveData(date, items);
-          updateTable(date);
+  return (
+    <>
+      <style>{`
+        * {
+          box-sizing: border-box;
         }
-      });
+        body {
+          margin: 0;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+            Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+          background: linear-gradient(135deg, #f0f3f5, #d9e2ec);
+          color: #1c1c1e;
+        }
+        .container {
+          max-width: 420px;
+          margin: 1rem auto 4rem;
+          padding: 1rem 1.5rem 2rem;
+          background: #fff;
+          border-radius: 20px;
+          box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+          user-select: none;
+        }
+        h1 {
+          font-weight: 700;
+          font-size: 1.6rem;
+          margin-bottom: 0.6rem;
+          text-align: center;
+          color: #0a0a0a;
+        }
+        label {
+          display: block;
+          font-weight: 600;
+          margin-top: 0.9rem;
+          color: #333;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="date"] {
+          width: 100%;
+          margin-top: 0.3rem;
+          padding: 0.5rem 0.8rem;
+          font-size: 1rem;
+          border-radius: 12px;
+          border: 1.8px solid #cbd5e1;
+          outline-offset: 2px;
+          transition: border-color 0.2s ease;
+          background: #fefefe;
+        }
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus {
+          border-color: #007aff;
+          background: #f0f8ff;
+        }
+        button {
+          margin-top: 1rem;
+          width: 100%;
+          padding: 0.8rem 0;
+          font-weight: 700;
+          font-size: 1.1rem;
+          border: none;
+          border-radius: 18px;
+          color: white;
+          background: linear-gradient(90deg, #007aff, #0a84ff);
+          cursor: pointer;
+          user-select: none;
+          transition: background 0.3s ease;
+        }
+        button:hover {
+          background: linear-gradient(90deg, #005bb5, #006ddb);
+        }
+        .entry-list {
+          margin-top: 1.6rem;
+          max-height: 180px;
+          overflow-y: auto;
+          border-top: 1px solid #eee;
+        }
+        .entry {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.6rem 0;
+          border-bottom: 1px solid #f0f0f0;
+          font-size: 0.95rem;
+          color: #444;
+        }
+        .entry > div:first-child {
+          flex-grow: 1;
+          max-width: 65%;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .entry span {
+          margin-left: 0.8rem;
+          color: #555;
+          font-weight: 600;
+          min-width: 45px;
+          text-align: right;
+          font-variant-numeric: tabular-nums;
+        }
+        .buttons {
+          display: flex;
+          gap: 0.4rem;
+          margin-left: 0.8rem;
+          flex-shrink: 0;
+        }
+        .btn-edit, .btn-delete {
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          font-size: 1.1rem;
+          color: #007aff;
+          padding: 0 4px;
+          user-select: none;
+        }
+        .btn-delete {
+          color: #ff3b30;
+        }
+        .summary {
+          margin-top: 1rem;
+          padding: 0.9rem 1.2rem;
+          background: #f0f8ff;
+          border-radius: 14px;
+          font-weight: 600;
+          font-size: 1rem;
+          display: flex;
+          justify-content: space-around;
+          color: #0a84ff;
+        }
+        .summary div {
+          min-width: 60px;
+          text-align: center;
+        }
+        .date-picker {
+          margin-bottom: 1rem;
+          display: flex;
+          justify-content: center;
+        }
+        .date-picker input {
+          max-width: 160px;
+        }
+        .weight-input {
+          margin-top: 1.3rem;
+        }
+        .chart-container {
+          margin-top: 2rem;
+          height: 180px;
+        }
+        @media (max-width: 420px) {
+          .container {
+            margin: 1rem 12px 3rem;
+            max-width: 100%;
+          }
+        }
+      `}</style>
+      <div className="container" role="main" aria-label="Calorie Tracker">
+        <h1>Калорийный трекер</h1>
 
-      foodList.appendChild(tr);
+        <div className="date-picker">
+          <label htmlFor="dateInput" style={{ display: "none" }}>Дата</label>
+          <input
+            id="dateInput"
+            type="date"
+            value={date}
+            max={formatDate(new Date())}
+            onChange={e => setDate(e.target.value)}
+            aria-label="Выбор даты"
+          />
+        </div>
 
-      sumCalories += Number(item.calories);
-      sumProtein += Number(item.protein || 0);
-      sumFat += Number(item.fat || 0);
-      sumCarb += Number(item.carb || 0);
-    });
+        <label htmlFor="foodInput">Еда / Блюдо *</label>
+        <input
+          id="foodInput"
+          type="text"
+          value={food}
+          onChange={e => setFood(e.target.value)}
+          placeholder="Например, Овсянка"
+          autoComplete="off"
+          aria-required="true"
+        />
 
-    totalStats.textContent = `Всего: ${sumCalories} Ккал | ${sumProtein} г Белков | ${sumFat} г Жиров | ${sumCarb} г Углеводов`;
-  }
+        <label htmlFor="caloriesInput">Калории (ккал)</label>
+        <input
+          id="caloriesInput"
+          type="number"
+          min="0"
+          step="any"
+          value={calories}
+          onChange={e => setCalories(e.target.value)}
+          placeholder="необязательно"
+          aria-required="false"
+        />
 
-  // При добавлении еды
-  foodForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const date = dateInput.value;
-    const food = foodInput.value.trim();
-    const calories = caloriesInput.value.trim();
-    // Белки, жиры, углеводы необязательны, если пусто — 0
-    const protein = proteinInput.value.trim() || '0';
-    const fat = fatInput.value.trim() || '0';
-    const carb = carbInput.value.trim() || '0';
+        <label htmlFor="proteinInput">Белки (г)</label>
+        <input
+          id="proteinInput"
+          type="number"
+          min="0"
+          step="any"
+          value={protein}
+          onChange={e => setProtein(e.target.value)}
+          placeholder="необязательно"
+          aria-required="false"
+        />
 
-    if(!date || !food || !calories) {
-      alert('Пожалуйста, заполните дату, еду и калории.');
-      return;
-    }
+        <label htmlFor="fatInput">Жиры (г)</label>
+        <input
+          id="fatInput"
+          type="number"
+          min="0"
+          step="any"
+          value={fat}
+          onChange={e => setFat(e.target.value)}
+          placeholder="необязательно"
+          aria-required="false"
+        />
 
-    const items = loadData(date);
-    items.push({ food, calories: Number(calories), protein: Number(protein), fat: Number(fat), carb: Number(carb) });
-    saveData(date, items);
-    updateTable(date);
+        <label htmlFor="carbsInput">Углеводы (г)</label>
+        <input
+          id="carbsInput"
+          type="number"
+          min="0"
+          step="any"
+          value={carbs}
+          onChange={e => setCarbs(e.target.value)}
+          placeholder="необязательно"
+          aria-required="false"
+        />
 
-    foodInput.value = '';
-    caloriesInput.value = '';
-    proteinInput.value = '';
-    fatInput.value = '';
-    carbInput.value = '';
-  });
+        <div className="weight-input">
+          <label htmlFor="weightInput">Вес (кг) — для графика</label>
+          <input
+            id="weightInput"
+            type="number"
+            min="20"
+            max="300"
+            step="0.1"
+            value={weight}
+            onChange={e => setWeight(e.target.value)}
+            placeholder="необязательно"
+            aria-required="false"
+          />
+        </div>
 
-  // При смене даты просмотра истории
-  historyDate.addEventListener('change', () => {
-    updateTable(historyDate.value);
-    dateInput.value = historyDate.value;
-  });
+        <button onClick={handleAddOrUpdate} aria-label={editId ? "Обновить запись" : "Добавить запись"}>
+          {editId ? "Обновить" : "Добавить"}
+        </button>
 
-  // При смене даты добавления — синхронизируем с историей
-  dateInput.addEventListener('change', () => {
-    historyDate.value = dateInput.value;
-    updateTable(dateInput.value);
-  });
+        <div className="entry-list" role="list" aria-label={`Записи на ${date}`}>
+          {filteredEntries.length === 0 && <p style={{ textAlign: "center", marginTop: 12, color: "#666" }}>Записей нет</p>}
+          {filteredEntries.map(entry => (
+            <div key={entry.id} className="entry" role="listitem">
+              <div title={entry.food}>{entry.food}</div>
+              <span>{entry.calories !== null ? `${entry.calories} ккал` : "-"}</span>
+              <div className="buttons">
+                <button
+                  className="btn-edit"
+                  onClick={() => handleEdit(entry.id)}
+                  aria-label={`Редактировать ${entry.food}`}
+                >✏️</button>
+                <button
+                  className="btn-delete"
+                  onClick={() => handleDelete(entry.id)}
+                  aria-label={`Удалить ${entry.food}`}
+                >🗑️</button>
+              </div>
+            </div>
+          ))}
+        </div>
 
-  // Загрузка при старте
-  updateTable(today);
-})();
-</script>
+        <div className="summary" aria-live="polite" aria-atomic="true" aria-relevant="additions removals">
+          <div>Ккал: {summary.calories.toFixed(0)}</div>
+          <div>Б: {summary.protein.toFixed(1)}</div>
+          <div>Ж: {summary.fat.toFixed(1)}</div>
+          <div>У: {summary.carbs.toFixed(1)}</div>
+        </div>
 
-</body>
-</html>
+        <div className="chart-container" aria-label="График веса">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={weightData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+              <CartesianGrid stroke="#f0f4f8" strokeDasharray="3 3" />
+              <XAxis dataKey="date" stroke="#888" tick={{ fontSize: 11 }} />
+              <YAxis domain={['dataMin - 5', 'dataMax + 5']} stroke="#888" tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="weight"
+                stroke="#0a84ff"
+                strokeWidth={3}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </>
+  );
+}
